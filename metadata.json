@@ -1,0 +1,6 @@
+{
+  "name": "IntelKit",
+  "description": "AI-Powered Content Intelligence Telegram Bot (Stage 1: Project Foundation)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
