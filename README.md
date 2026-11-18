@@ -31,7 +31,7 @@ pytest -q
 APP_ENV=development python -m uvicorn app.main:app --reload
 ```
 
-Development polling can be added after credentials are configured by wiring `build_application(settings, manager).run_polling()` in a small local runner; production never runs polling. The current build keeps import/startup testable without requiring a token.
+After credentials are configured, run polling locally with `python scripts/run_polling.py`; production never runs polling. The current build keeps import/startup testable without requiring a token.
 
 ## Render
 
