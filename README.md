@@ -81,3 +81,17 @@ Stage 1 sets up the core backend server, Telegram bot initialization, webhook fo
      python scripts/set_webhook.py set
      ```
    - Message `/start`, `/help`, or any text to your bot on Telegram!
+
+### Troubleshooting If the Bot Doesn't Respond
+
+Run the diagnostic script first:
+```bash
+python scripts/diagnose.py
+```
+
+If you don't want to set up `ngrok` yet for local testing on your computer, you can test the exact same bot handlers directly using local polling mode:
+```bash
+python scripts/run_polling.py
+```
+*(Note: When you go back to testing webhook mode or deploy to Render, register the webhook again with `python scripts/set_webhook.py set`.)*
+

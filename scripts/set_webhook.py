@@ -1,13 +1,27 @@
-"""Beginner-friendly helper script to register or inspect your Telegram webhook."""
+"""Beginner-friendly helper script to register, inspect, or delete your Telegram webhook."""
 
 from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
+
+# Allow running directly via `python scripts/set_webhook.py` from the project root.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 
 import httpx
 
 from app.config import load_settings
+
+
+def _normalize_webhook_url(raw_url: str) -> str:
+    """Normalize a base URL or full webhook URL into <base>/webhook/telegram."""
+    cleaned = raw_url.strip().rstrip("/")
+    if cleaned.endswith("/webhook/telegram"):
+        return cleaned
+    return f"{cleaned}/webhook/telegram"
 
 
 def register_webhook(webhook_base_url: str, *, drop_pending: bool = False) -> int:
@@ -17,12 +31,12 @@ def register_webhook(webhook_base_url: str, *, drop_pending: bool = False) -> in
         print("Error: TELEGRAM_BOT_TOKEN is not set in your .env file.")
         return 1
 
-    base = webhook_base_url.strip().rstrip("/")
-    if not base.startswith("https://"):
+    cleaned_base = webhook_base_url.strip().rstrip("/")
+    if not cleaned_base.startswith("https://"):
         print("Error: Telegram requires an HTTPS webhook URL (e.g., https://xxxx.ngrok-free.app).")
         return 1
 
-    webhook_url = f"{base}/webhook/telegram"
+    webhook_url = _normalize_webhook_url(cleaned_base)
     api_base = f"https://api.telegram.org/bot{settings.telegram_bot_token}"
 
     payload: dict[str, object] = {
@@ -70,6 +84,29 @@ def check_webhook() -> int:
     return 0
 
 
+def delete_webhook(*, drop_pending: bool = False) -> int:
+    """Remove the configured Telegram webhook (useful before local polling tests)."""
+    settings = load_settings()
+    if not settings.is_bot_configured:
+        print("Error: TELEGRAM_BOT_TOKEN is not set in your .env file.")
+        return 1
+
+    api_base = f"https://api.telegram.org/bot{settings.telegram_bot_token}"
+    with httpx.Client(timeout=15.0) as client:
+        response = client.post(
+            f"{api_base}/deleteWebhook",
+            json={"drop_pending_updates": drop_pending},
+        )
+        data = response.json()
+
+    if response.status_code != 200 or not data.get("ok"):
+        print(f"Failed to delete webhook: {data.get('description', 'Unknown error')}")
+        return 1
+
+    print("Success: Telegram webhook removed.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Manage IntelKit Telegram webhook.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -88,9 +125,18 @@ def main() -> int:
 
     subparsers.add_parser("info", help="Check current Telegram webhook configuration")
 
+    del_parser = subparsers.add_parser("delete", help="Remove the active Telegram webhook")
+    del_parser.add_argument(
+        "--drop-pending",
+        action="store_true",
+        help="Discard queued updates",
+    )
+
     args = parser.parse_args()
     if args.command == "info":
         return check_webhook()
+    if args.command == "delete":
+        return delete_webhook(drop_pending=args.drop_pending)
 
     settings = load_settings()
     target_url = args.url or settings.webhook_base_url

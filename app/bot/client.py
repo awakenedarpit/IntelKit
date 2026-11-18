@@ -20,17 +20,19 @@ from app.config import Settings
 logger = logging.getLogger("intelkit.bot.client")
 
 
-def create_telegram_application(settings: Settings) -> Application:
-    """Create and configure a webhook-mode python-telegram-bot Application."""
+def create_telegram_application(
+    settings: Settings,
+    *,
+    webhook_mode: bool = True,
+) -> Application:
+    """Create and configure a python-telegram-bot Application."""
     if not settings.is_bot_configured:
         raise ValueError("Cannot initialize Telegram Application without TELEGRAM_BOT_TOKEN.")
 
-    application = (
-        Application.builder()
-        .token(settings.telegram_bot_token)
-        .updater(None)
-        .build()
-    )
+    builder = Application.builder().token(settings.telegram_bot_token)
+    if webhook_mode:
+        builder = builder.updater(None)
+    application = builder.build()
 
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))

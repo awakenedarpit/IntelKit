@@ -28,7 +28,11 @@ def _track_background_task(task_set: set[asyncio.Task[Any]], task: asyncio.Task[
             return
         exc = completed.exception()
         if exc is not None:
-            logger.error("Background update task failed (%s)", type(exc).__name__)
+            logger.error(
+                "Background update task failed (%s): %s",
+                type(exc).__name__,
+                exc,
+            )
 
     task.add_done_callback(_on_done)
 
